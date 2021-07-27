@@ -8,7 +8,7 @@ from destination_id import get_destination_id
 def sort_by_price(sort_order: str, city: str, number_of_hotels: str) -> str:
     """Формирование и возврат топа отелей в зависимости от цены"""
     # Получение id города и проверка существования города в базе
-    destination_id = get_destination_id(city)
+    destination_id, location = get_destination_id(city)
     if not destination_id:
         return 'Город не найден'
 
@@ -62,7 +62,7 @@ def sort_by_price(sort_order: str, city: str, number_of_hotels: str) -> str:
                                                    distance=distance,
                                                    price=price))
 
-    # Формирование строки для ответа бота
+    # Формирование строки из списка для ответа бота
     if not hotels_list:
-        return 'Подходящие отели не найдены'
-    return '\n\n'.join(hotels_list)
+        return '{location}\nПодходящие отели не найдены'.format(location=location)
+    return '\n\n'.join((location, '\n\n'.join(hotels_list)))
