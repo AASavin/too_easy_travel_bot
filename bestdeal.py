@@ -6,7 +6,7 @@ from destination_id import get_destination_id
 from typing import List, Tuple, Optional
 
 
-def best_deal(city: str, price_min: str, price_max: str, distance_min: float, distance_max: float,
+def best_deal(city: str, price_min: int, price_max: int, distance_min: float, distance_max: float,
               number_of_hotels: int) -> str:
     """Получение id города и списка отелей"""
     # Получение destination id
@@ -36,7 +36,7 @@ def best_deal(city: str, price_min: str, price_max: str, distance_min: float, di
     return '\n\n'.join((location, '\n\n'.join(hotels_list)))
 
 
-def get_hotels_list(destination_id: str, price_min: str, price_max: str, distance_min: float,
+def get_hotels_list(destination_id: str, price_min: int, price_max: int, distance_min: float,
                     distance_max: float, number_of_hotels: int, page: int,
                     rating_counter: int) -> Tuple[List[str], Optional[int], int]:
     """Формирование и возврат топа отелей, наиболее подходящих по цене и расположению от центра"""
@@ -44,7 +44,7 @@ def get_hotels_list(destination_id: str, price_min: str, price_max: str, distanc
     url = "https://hotels4.p.rapidapi.com/properties/list"
     date = datetime.now().date()
     querystring = {"adults1": '1',
-                   "pageNumber": str(page),
+                   "pageNumber": page,
                    "destinationId": destination_id,
                    "pageSize": '25',
                    "checkOut": date,

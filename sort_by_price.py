@@ -5,7 +5,7 @@ from datetime import datetime
 from destination_id import get_destination_id
 
 
-def sort_by_price(sort_order: str, city: str, number_of_hotels: str) -> str:
+def sort_by_price(sort_order: str, city: str, number_of_hotels: int) -> str:
     """Формирование и возврат топа отелей в зависимости от цены"""
     # Получение id города и проверка существования города в базе
     destination_id, location = get_destination_id(city)
