@@ -19,8 +19,11 @@ def get_destination_id(city: str) -> Tuple[Optional[str], Optional[str]]:
     try:
         destination_id = data['suggestions'][0]['entities'][0]['destinationId']
         location = data['suggestions'][0]['entities'][0]["caption"]
+
+    except IndexError:
+        return None, None
+
+    else:
         # Удаление тегов из названия населенного пункта
         location = re.sub(r'<.*?>', '', location)
         return destination_id, location
-    except IndexError:
-        return None, None

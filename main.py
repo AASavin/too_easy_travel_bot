@@ -1,6 +1,6 @@
 import telebot
 import config
-import checks
+import utils
 from telebot import types
 from sort_by_price import sort_by_price
 from bestdeal import best_deal
@@ -60,9 +60,9 @@ def get_price(message, city, sort_order):
         return
 
     # Проверка, что введенные данные - числа, разделенные дефисом
-    price_min, price_max = checks.price_range(message.text)
+    price_min, price_max = utils.price_range(message.text)
 
-    if not price_min:
+    if not price_max:
         # Вызов себя при неправильном вводе
         bot.send_message(message.chat.id, 'Неправильно введен диапазон. '
                                           'Введите минимальную и максимальную цены в рублях через дефис '
@@ -85,9 +85,9 @@ def get_distance(message, city, sort_order, price_min, price_max):
 
     # Проверка, что введенные данные - числа, которые можно перевести во float, разделенные дефисом
 
-    distance_min, distance_max = checks.distance_range(message.text)
+    distance_min, distance_max = utils.distance_range(message.text)
 
-    if not distance_min:
+    if not distance_max:
         # Вызов себя при неправильном вводе
         bot.send_message(message.chat.id, 'Неправильно введен диапазон. '
                                           'Введите минимальное и максимальное расстояния в км через дефис '
@@ -110,7 +110,7 @@ def get_number(message, sort_order, city, price_min=None, price_max=None, distan
     if message.text == '/stop':
         return
     # Проверка, что введенные данные - число от 1 до 25
-    number = checks.number_of_hotels(message.text)
+    number = utils.number_of_hotels(message.text)
 
     if not number:
         # Вызов себя при неправильном вводе

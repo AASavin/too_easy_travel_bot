@@ -5,7 +5,8 @@ def price_range(message: str) -> Tuple[Optional[int], Optional[int]]:
     """Проверка, что введенные данные - числа, разделенные дефисом"""
     try:
         price_min, price_max = message.split('-')
-        if int(price_min) > int(price_max):
+        price_min, price_max = int(price_min), int(price_max)
+        if price_min > price_max:
             raise ValueError
 
     except ValueError:
