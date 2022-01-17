@@ -2,8 +2,30 @@ import telebot
 import config
 import utils
 from telebot import types
-from sort_by_price import sort_by_price
-from bestdeal import best_deal
+from find_hotels import get_hotels
+
+
+class Request:
+    def __init__(self, command: str):
+        self.command = command
+        self.sort_order = None
+        self.city = None
+        self.price_min = None
+        self.price_max = None
+        self.distance_min = None
+        self.distance_max = None
+        self.number_of_hotels = None
+        self.set_sort_order()
+
+    def set_sort_order(self):
+        if self.command == '/lowprice':
+            self.sort_order = 'PRICE'
+
+        elif self.command == '/highprice':
+            self.sort_order = 'PRICE_HIGHEST_FIRST'
+        else:
+            self.sort_order = 'DISTANCE_FROM_LANDMARK'
+
 
 bot = telebot.TeleBot(config.TOKEN)
 
@@ -12,7 +34,7 @@ bot = telebot.TeleBot(config.TOKEN)
 def define_command(message):
     """Определение команды бота"""
     if message.text in ('/start', '/help'):
-        # Кнопки отправляются каждый раз, когда вводится /help на случай, если клавиатура пропадет
+        # Отправка кнопок
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
         bttn_1 = types.KeyboardButton('/lowprice')
         bttn_2 = types.KeyboardButton('/highprice')
@@ -25,110 +47,79 @@ def define_command(message):
                                           '/bestdeal — вывод отелей, '
                                           'наиболее подходящих по цене и расположению от центра', reply_markup=markup)
 
-    elif message.text == '/lowprice':
+    elif message.text in ('/lowprice', '/highprice', '/bestdeal'):
+        request = Request(command=message.text)
         bot.send_message(message.chat.id, 'Введите город:')
-        bot.register_next_step_handler(message, get_city, sort_order='PRICE')
-
-    elif message.text == '/highprice':
-        bot.send_message(message.chat.id, 'Введите город:')
-        bot.register_next_step_handler(message, get_city, sort_order='PRICE_HIGHEST_FIRST')
-
-    elif message.text == '/bestdeal':
-        bot.send_message(message.chat.id, 'Введите город:')
-        bot.register_next_step_handler(message, get_city, sort_order='DISTANCE_FROM_LANDMARK')
+        bot.register_next_step_handler(message, get_city, request=request)
 
     else:
         bot.send_message(message.chat.id, 'Такой команды нет. Если нужна помощь в управлении ботом - введите /help')
 
 
-def get_city(message, sort_order):
+def get_city(message, request):
     """Получение города"""
-    # Для команды /bestdeal. Переход в get_price
-    if sort_order == 'DISTANCE_FROM_LANDMARK':
+    request.city = message.text
+    if request.command == '/bestdeal':
         bot.send_message(message.chat.id, 'Введите минимальную и максимальную цены в рублях через дефис:')
-        bot.register_next_step_handler(message, get_price, sort_order=sort_order, city=message.text)
-    # Для остальных команд. Переход в get_number
+        bot.register_next_step_handler(message, get_price, request=request)
     else:
         bot.send_message(message.chat.id, 'Введите количество отелей в рейтинге (не больше 25):')
-        bot.register_next_step_handler(message, get_number, sort_order=sort_order, city=message.text)
+        bot.register_next_step_handler(message, get_number, request=request)
 
 
-def get_price(message, city, sort_order):
+def get_price(message, request):
     """Получение диапазона цен"""
-    # Для выхода, если пользователь не может справиться с вводом
     if message.text == '/stop':
         return
 
-    # Проверка, что введенные данные - числа, разделенные дефисом
-    price_min, price_max = utils.price_range(message.text)
+    # Проверка введенных цен, перевод строки в целочисленные значения
+    request.price_min, request.price_max = utils.price_range(message.text)
 
-    if not price_max:
-        # Вызов себя при неправильном вводе
+    if not request.price_max:
         bot.send_message(message.chat.id, 'Неправильно введен диапазон. '
                                           'Введите минимальную и максимальную цены в рублях через дефис '
                                           '(Пример: 2000-5000). '
                                           'Если хотите попробовать другую команду, введите команду /stop')
-        bot.register_next_step_handler(message, get_price, city=city, sort_order=sort_order)
-
+        bot.register_next_step_handler(message, get_price, request=request)
     else:
-        # Переход в get_distance
         bot.send_message(message.chat.id, 'Введите минимальное и максимальное расстояния до центра в км через дефис:')
-        bot.register_next_step_handler(message, get_distance, city=city, sort_order=sort_order,
-                                       price_min=price_min, price_max=price_max)
+        bot.register_next_step_handler(message, get_distance, request=request)
 
 
-def get_distance(message, city, sort_order, price_min, price_max):
+def get_distance(message, request):
     """Получение диапазона расстояния от центра"""
-    # Для выхода, если пользователь не может справиться с вводом
     if message.text == '/stop':
         return
 
-    # Проверка, что введенные данные - числа, которые можно перевести во float, разделенные дефисом
+    # Проверка введенного интервала расстояния, перевод строки в вещественные числа
+    request.distance_min, request.distance_max = utils.distance_range(message.text)
 
-    distance_min, distance_max = utils.distance_range(message.text)
-
-    if not distance_max:
-        # Вызов себя при неправильном вводе
+    if not request.distance_max:
         bot.send_message(message.chat.id, 'Неправильно введен диапазон. '
                                           'Введите минимальное и максимальное расстояния в км через дефис '
                                           '(Пример: 0-5,5). '
                                           'Если хотите попробовать другую команду, введите команду /stop')
-        bot.register_next_step_handler(message, get_distance, city=city, sort_order=sort_order,
-                                       price_min=price_min, price_max=price_max)
-
+        bot.register_next_step_handler(message, get_distance, request=request)
     else:
-        # Переход в get_number
         bot.send_message(message.chat.id, 'Введите количество отелей в рейтинге (не больше 25):')
-        bot.register_next_step_handler(message, get_number, city=city, sort_order=sort_order,
-                                       price_min=price_min, price_max=price_max,
-                                       distance_min=distance_min, distance_max=distance_max)
+        bot.register_next_step_handler(message, get_number, request=request)
 
 
-def get_number(message, sort_order, city, price_min=None, price_max=None, distance_min=None, distance_max=None):
+def get_number(message, request):
     """Получение количества отелей и вызов функции с рейтингом отелей"""
-    # Для выхода, если пользователь не может справиться с вводом
     if message.text == '/stop':
         return
-    # Проверка, что введенные данные - число от 1 до 25
-    number = utils.number_of_hotels(message.text)
 
-    if not number:
-        # Вызов себя при неправильном вводе
+    # Проверка, что введенные данные - число от 1 до 25, перевод строки в целое число
+    request.number_of_hotels = utils.number_of_hotels(message.text)
+
+    if not request.number_of_hotels:
         bot.send_message(message.chat.id, 'Нужно ввести целое число от 1 до 25. '
                                           'Если хотите попробовать другую команду, введите команду /stop')
-        bot.register_next_step_handler(message, get_number, city=city, sort_order=sort_order,
-                                       price_min=price_min, price_max=price_max,
-                                       distance_min=distance_min, distance_max=distance_max)
+        bot.register_next_step_handler(message, get_number, request=request)
 
     else:
-        # Команда /bestdeal
-        if sort_order == 'DISTANCE_FROM_LANDMARK':
-            hotels = best_deal(city=city, price_min=price_min, price_max=price_max,
-                               distance_min=distance_min, distance_max=distance_max, number_of_hotels=number)
-        # Остальные команды
-        else:
-            hotels = sort_by_price(sort_order=sort_order, city=city, number_of_hotels=number)
-
+        hotels = get_hotels(request)
         bot.send_message(message.chat.id, hotels)
 
 
